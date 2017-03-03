@@ -371,7 +371,8 @@
 #define	CONFIG_VIDEO_BMP_RLE8
 #define CONFIG_VIDEO_BMP_LOGO
 #endif
-
+/*software SPI Configs*/
+#define CONFIG_SOFT_SPI_ST7789
 /* USB Configs */
 #define CONFIG_CMD_USB
 #ifdef CONFIG_CMD_USB

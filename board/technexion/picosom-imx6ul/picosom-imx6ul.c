@@ -820,5 +820,49 @@ void board_recovery_setup(void)
 	setenv("bootcmd", "run bootcmd_android_recovery");
 }
 #endif /*CONFIG_ANDROID_RECOVERY*/
+static iomux_v3_cfg_t const sf_spi_st7789_init[] = {
+	MX6_PAD_UART2_TX_DATA__GPIO1_IO20 | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_UART2_RX_DATA__GPIO1_IO21 | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_UART2_RTS_B__GPIO1_IO23 | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_UART2_CTS_B__GPIO1_IO22 | MUX_PAD_CTRL(SPI_PAD_CTRL),
+};
+void set_soft_spi_ss(char set)
+{
+	if(set > 1)
+		return;
+	gpio_direction_output(IMX_GPIO_NR(1, 20) , set);
+}
+void set_soft_spi_clk(char set)
+{
+	if(set > 1)
+		return;
+	gpio_direction_output(IMX_GPIO_NR(1, 21) , set);
+}
+void set_soft_spi_sda(char set)
+{
+	if(set > 1)
+		return;
+	gpio_direction_output(IMX_GPIO_NR(1, 22) , set);
+}
+int get_sda_io(void)
+{
+	return gpio_get_value(IMX_GPIO_NR(1,23));
+}
+extern void init_st7789_on_spi(void);
+void st7789_init_board(void)
+{
+	imx_iomux_v3_setup_multiple_pads(sf_spi_st7789_init, ARRAY_SIZE(sf_spi_st7789_init));
+	printf("imx_iomux_v3_setup_multiple_pads\r\n");
 
-#endif /*CONFIG_FSL_FASTBOOT*/
+	//enable_cspi_clock(1,2);
+	while(1)
+	{
+	  init_st7789_on_spi();
+
+ 	  mdelay(1000);
+	}
+}
+
+
+
+#endif /*CONFIG_FSL_FiASTBOOT*/

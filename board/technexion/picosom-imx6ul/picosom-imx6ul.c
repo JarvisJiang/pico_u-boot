@@ -825,42 +825,78 @@ static iomux_v3_cfg_t const sf_spi_st7789_init[] = {
 	MX6_PAD_UART2_RX_DATA__GPIO1_IO21 | MUX_PAD_CTRL(SPI_PAD_CTRL),
 	MX6_PAD_UART2_RTS_B__GPIO1_IO23 | MUX_PAD_CTRL(SPI_PAD_CTRL),
 	MX6_PAD_UART2_CTS_B__GPIO1_IO22 | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_CSI_DATA00__GPIO4_IO21 |MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 void set_soft_spi_ss(char set)
 {
 	if(set > 1)
-		return;
+	set = 1;	
 	gpio_direction_output(IMX_GPIO_NR(1, 20) , set);
 }
 void set_soft_spi_clk(char set)
 {
 	if(set > 1)
-		return;
+	set = 1;
 	gpio_direction_output(IMX_GPIO_NR(1, 21) , set);
 }
+void set_reset_st7789(char set)
+{
+	if(set > 1)
+	set = 1;
+	gpio_direction_output(IMX_GPIO_NR(4, 21) , set);
+}
+#if 0 //reverse
 void set_soft_spi_sda(char set)
 {
 	if(set > 1)
-		return;
+	set = 1;
 	gpio_direction_output(IMX_GPIO_NR(1, 22) , set);
 }
 int get_sda_io(void)
 {
 	return gpio_get_value(IMX_GPIO_NR(1,23));
 }
+#else
+void set_soft_spi_sda(char set)
+{
+        if(set > 1)
+        set = 1;
+        gpio_direction_output(IMX_GPIO_NR(1, 23) , set);
+}
+int get_sda_io(void)
+{
+        return gpio_get_value(IMX_GPIO_NR(1,22));
+}
+#endif
 extern void init_st7789_on_spi(void);
+
 void st7789_init_board(void)
 {
 	imx_iomux_v3_setup_multiple_pads(sf_spi_st7789_init, ARRAY_SIZE(sf_spi_st7789_init));
-	printf("imx_iomux_v3_setup_multiple_pads\r\n");
 
-	//enable_cspi_clock(1,2);
+	
+	init_st7789_on_spi();
+#if 0
 	while(1)
 	{
+	printf("init st7789 \r\n");
+//	mdelay(200);
 	  init_st7789_on_spi();
+/*
+	set_soft_spi_sda(1);
+	set_soft_spi_clk(1);
+	set_soft_spi_ss(1);
+	printf("miso ff input jrjrjrjjrjrjrj value %d\n", get_sda_io());
+	 mdelay(100);
+	set_soft_spi_sda(0);
+        set_soft_spi_clk(0);
+	set_soft_spi_ss(0);
+*/
+//	printf("miso input value %d\n", get_sda_io());
+	mdelay(100);
 
- 	  mdelay(1000);
 	}
+#endif
 }
 
 

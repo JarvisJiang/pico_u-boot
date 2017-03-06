@@ -26,11 +26,12 @@ extern void set_soft_spi_ss(char set);
 extern void set_soft_spi_clk(char set);
 extern void set_soft_spi_sda(char set);
 extern int  get_sda_io(void);
-
+extern void set_reset_st7789(char set);
 #define	SPI_DELAY	udelay(10)
 #define	SPI_SDA(val)	set_soft_spi_sda(val)
 #define	SPI_SCL(val)	set_soft_spi_clk(val)
 #define	SPI_READ	get_sda_io()
+#define SPI_RESET_PIN(val)  set_reset_st7789(val)
 struct soft_spi_slave {
 	struct spi_slave slave;
 	unsigned int mode;
@@ -51,7 +52,28 @@ static inline struct soft_spi_slave *to_soft_spi(struct spi_slave *slave)
 void  lcd_spi_init (void)
 {
 }
+int spi_cs_is_valid(unsigned int bus, unsigned int cs)
+{
 
+		return 1;
+}
+/*
+static inline struct mxc_spi_slave *to_mxc_spi_slave(struct spi_slave *slave)
+{
+	return container_of(slave, struct mxc_spi_slave, slave);
+}
+*/
+extern int gpio_direction_output(unsigned gpio, int value);
+void spi_cs_activate(struct spi_slave *slave)
+{
+	set_soft_spi_ss(0);
+}
+
+void spi_cs_deactivate(struct spi_slave *slave)
+{
+       set_soft_spi_ss(1);
+}
+/*
 struct spi_slave *lcd_spi_setup_slave(unsigned int bus, unsigned int cs,
 		unsigned int max_hz, unsigned int mode)
 {
@@ -66,10 +88,10 @@ struct spi_slave *lcd_spi_setup_slave(unsigned int bus, unsigned int cs,
 
 	ss->mode = mode;
 
-	/* TODO: Use max_hz to limit the SCK rate */
+//	 TODO: Use max_hz to limit the SCK rate 
 
 	return &ss->slave;
-}
+}*/
 
 void lcd_spi_free_slave(struct spi_slave *slave)
 {
@@ -138,14 +160,14 @@ int  lcd_spi_xfer(struct spi_slave *slave, unsigned int bitlen,
 	uchar		tmpdout = 0;
 	const u8	*txd = dout;
 	u8		*rxd = din;
-	int		cpol = ss->mode & SPI_CPOL;
-	int		cpha = ss->mode & SPI_CPHA;
+	int		cpol =  1;
+	int		cpha =  SPI_CPHA;
 	unsigned int	j;
 
 	PRINTD("spi_xfer: slave %u:%u dout %08X din %08X bitlen %u\n",
 		slave->bus, slave->cs, *(uint *)txd, *(uint *)rxd, bitlen);
 
-	if (flags & SPI_XFER_BEGIN)
+//	if (flags & SPI_XFER_BEGIN)
 		spi_cs_activate(slave);
 
 	for(j = 0; j < bitlen; j++) {
@@ -190,13 +212,11 @@ int  lcd_spi_xfer(struct spi_slave *slave, unsigned int bitlen,
 		*rxd++ = tmpdin;
 	}
 
-	if (flags & SPI_XFER_END)
+//	if (flags & SPI_XFER_END)
 		spi_cs_deactivate(slave);
 
 	return(0);
 }
-
-
 
 
 static struct spi_slave *st_slave;
@@ -213,13 +233,17 @@ UART2_CTS               SPI3_MISO 		MX6_PAD_UART2_CTS_B__ECSPI3_MOSI
 */      
 #define ST7789_SPI_BUS  2   //第几个SPI  从1到4   需要修改相关函数 board_spi_cs_gpio
 #define ST7789_SPI_CS  0   //第几个 CS 0
+static unsigned char  s_buf[128];
 static int SPI_9608_WR_CMD(int data)
 {
-	unsigned char  buf[2]; /* write cmd + 7 registers */
+
 	int ret;
+	unsigned char readbuf[128];
 	data = data;
-	buf[0] =  (unsigned char)data|0xff;
-	buf[1] = 0;
+	s_buf[0] =  (unsigned char)((data>>1)&0x3f);
+	s_buf[1] = (data&0x1)<<7;
+
+	/*
 	if (!st_slave) {
 		st_slave = lcd_spi_setup_slave(ST7789_SPI_BUS,
 					ST7789_SPI_CS, 1000000,
@@ -228,28 +252,112 @@ static int SPI_9608_WR_CMD(int data)
 		if (!st_slave)
 			return -1;
 	}
-	ret = lcd_spi_xfer(st_slave, 64, buf, NULL, SPI_XFER_BEGIN | SPI_XFER_END);
+	*/
+	ret = lcd_spi_xfer(st_slave, 9, s_buf, readbuf, SPI_XFER_BEGIN | SPI_XFER_END);
 	lcd_spi_release_bus(st_slave);
+	
+	return ret;
+} 
+
+
+static int SPI_9608_read(int data)
+{
+
+	int ret;
+	unsigned char readbuf[128];
+
+
+	s_buf[0] =  (unsigned char)((data>>1)&0x3f);
+	s_buf[1] = (data&0x1)<<7;
+	s_buf[2] = 0xff;
+	s_buf[3] = 0xff;
+	s_buf[4] = 0xff;
+	s_buf[5] = 0xff;
+	s_buf[6] = 0xff;
+	s_buf[7] = 0xff;
+	/*
+	if (!st_slave) {
+		st_slave = lcd_spi_setup_slave(ST7789_SPI_BUS,
+					ST7789_SPI_CS, 1000000,
+					SPI_MODE_3);
+		printf("spi3 base register %x\n",(int)st_slave);
+		if (!st_slave)
+			return -1;
+	}
+	*/
+	ret = lcd_spi_xfer(st_slave, 64, s_buf, readbuf, SPI_XFER_BEGIN | SPI_XFER_END);
+
+	printf("readbuf[0] =%x\n",readbuf[0]);
+	printf("readbuf[1] =%x\n",readbuf[1]);
+	printf("readbuf[2] =%x\n",readbuf[2]);
+	printf("readbuf[3] =%x\n",readbuf[3]);
+	printf("readbuf[4] =%x\n",readbuf[4]);
+	lcd_spi_release_bus(st_slave);
+	ret = ((int)readbuf[0]<<24)|((int)readbuf[1]<<16)|((int)readbuf[2]<<8)|((int)readbuf[3]);
+	ret <<= 1;
+	printf("ret = 0x%x  dec = %d\n",ret,ret);
 	return ret;
 } 
 static int SPI_9608_WR_PAR(int data)
 {
-	unsigned char  buf[8]; /* write cmd + 7 registers */
+
 	int ret;
-	buf[0] = (unsigned char)data|0xff;
-	buf[1] = 0;
+	s_buf[0] = (unsigned char)((data>>1)|0x80);
+	s_buf[1] = (data&0x1)<<7;
+
+	/*
 	if (!st_slave) {
 		st_slave = lcd_spi_setup_slave(ST7789_SPI_BUS,
 					ST7789_SPI_CS, 1000000,
 					SPI_MODE_3);
 		if (!st_slave)
 			return -1;
-	}
-	ret = lcd_spi_xfer(st_slave, 9, buf, NULL, SPI_XFER_BEGIN | SPI_XFER_END);
+	}*/
+	ret = lcd_spi_xfer(st_slave, 9, s_buf, NULL, SPI_XFER_BEGIN | SPI_XFER_END);
 	lcd_spi_release_bus(st_slave);
 	return ret;
 } 
+void test_spi_format(void)
+{
+	s_buf[2] = 0xff;
+	s_buf[3] = 0xff;
+	s_buf[4] = 0xff;
+	s_buf[5] = 0xff;
+	s_buf[6] = 0xff;
+	s_buf[7] = 0xff;
+	s_buf[8] = 0xff;
+	s_buf[9] = 0xff;
+#if 1
+	while(1)
+	{
+	SPI_RESET_PIN(0);
+	mdelay(100);
+	SPI_RESET_PIN(1);
+	mdelay(100);
+	printf("reset cmd11\n");
+	SPI_9608_WR_CMD(0x01);
+	mdelay(10);
+	SPI_9608_WR_CMD(0x11);
+	mdelay(500);
+	printf("cmd sleep out\n");
+	 
+	printf("++++++++++++++++++++++++++++\n");
+	printf("read display display status\n");
+	//page 167
+	SPI_9608_WR_CMD(0X28);//DISON
+	SPI_9608_read(0X09);
 
+	SPI_9608_WR_CMD(0X29);
+	SPI_9608_read(0X09);
+	
+	SPI_9608_WR_CMD(0X35);//TEON
+	SPI_9608_read(0X09);
+
+	SPI_9608_WR_CMD(0X34);
+	SPI_9608_read(0X09);
+	}
+#endif
+}
 void init_st7789_on_spi(void)
 {
 	// VCI=2.8V
@@ -258,8 +366,26 @@ void init_st7789_on_spi(void)
 	*********  MCU initialize code  *********	
 	*****************************************/
 	//ST7789+2.4CTC
+
+	s_buf[2] = 0xff;
+	s_buf[3] = 0xff;
+	s_buf[4] = 0xff;
+	s_buf[5] = 0xff;
+	s_buf[6] = 0xff;
+	s_buf[7] = 0xff;
+	s_buf[8] = 0xff;
+	s_buf[9] = 0xff;
+	SPI_RESET_PIN(0);
+	mdelay(100);
+	SPI_RESET_PIN(1);
+	mdelay(100);
+	printf("reset cmd11\n");
+	SPI_9608_WR_CMD(0x01);
+	mdelay(10);
+
+
 	SPI_9608_WR_CMD(0x11); 
-	mdelay(120);                
+	mdelay(120); 
 	//Delay 120ms                                      //Delay 120ms 
 	//--------------------------------------Display Setting---------------------------------------// 
 	SPI_9608_WR_CMD(0x36); 

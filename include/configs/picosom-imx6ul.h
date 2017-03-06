@@ -356,7 +356,7 @@
 #ifndef CONFIG_SYS_DCACHE_OFF
 #define CONFIG_CMD_CACHE
 #endif
-
+#define CONFIG_VIDEO
 #ifdef CONFIG_VIDEO
 #define	CONFIG_CFB_CONSOLE
 #define	CONFIG_VIDEO_MXS

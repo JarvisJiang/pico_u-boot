@@ -185,6 +185,7 @@ void lcdif_power_down()
 	mxs_reset_block((struct mxs_register_32 *)&regs->hw_lcdif_ctrl);
 }
 
+extern	void st7789_init_board(void);
 void *video_hw_init(void)
 {
 	int bpp = -1;
@@ -272,7 +273,8 @@ void *video_hw_init(void)
 	panel.frameAdrs = (u32)fb;
 
 	printf("%s\n", panel.modeIdent);
-
+	/**/
+	st7789_init_board();
 	/* Start framebuffer */
 	mxs_lcd_init(&panel, &mode, bpp);
 

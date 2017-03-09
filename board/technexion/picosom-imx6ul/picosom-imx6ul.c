@@ -402,7 +402,7 @@ static iomux_v3_cfg_t const lcd_pads[] = {
 	/*
 	 * Use GPIO for Brightness adjustment, duty cycle = period.
 	 */
-	MX6_PAD_GPIO1_IO08__GPIO1_IO08 | MUX_PAD_CTRL(NO_PAD_CTRL),
+	MX6_PAD_NAND_ALE__GPIO4_IO10 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
 struct lcd_panel_info_t {
@@ -419,29 +419,29 @@ void do_enable_parallel_lcd(struct lcd_panel_info_t const *dev)
 	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
 
 	/* Reset the LCD */
-	gpio_direction_output(IMX_GPIO_NR(5, 9) , 0);
+	gpio_direction_output(IMX_GPIO_NR(4, 21),  0);
 	udelay(500);
-	gpio_direction_output(IMX_GPIO_NR(5, 9) , 1);
-
+	gpio_direction_output(IMX_GPIO_NR(4, 21),  1);
+	udelay(500);
 	/* Set Brightness to high */
-	gpio_direction_output(IMX_GPIO_NR(1, 8) , 1);
+	gpio_direction_output(IMX_GPIO_NR(4, 10) , 1);
 }
 
 static struct lcd_panel_info_t const displays[] = {{
 	.lcdif_base_addr = LCDIF1_BASE_ADDR,
-	.depth = 24,
+	.depth = 16,
 	.enable	= do_enable_parallel_lcd,
 	.mode	= {
 		.name			= "TFT43AB",
-		.xres           = 480,
-		.yres           = 272,
-		.pixclock       = 108695,
-		.left_margin    = 8,
+		.xres           = 320,
+		.yres           = 240,
+		.pixclock       = 180000,
+		.left_margin    = 4,
 		.right_margin   = 4,
-		.upper_margin   = 2,
-		.lower_margin   = 4,
-		.hsync_len      = 41,
-		.vsync_len      = 10,
+		.upper_margin   = 10,
+		.lower_margin   = 10,
+		.hsync_len      = 38,
+		.vsync_len      = 8,
 		.sync           = 0,
 		.vmode          = FB_VMODE_NONINTERLACED
 } } };
@@ -863,24 +863,37 @@ void set_soft_spi_sda(char set)
         set = 1;
         gpio_direction_output(IMX_GPIO_NR(1, 23) , set);
 }
-int get_sda_io(void)
+int get_sda_io(char set)
 {
         return gpio_get_value(IMX_GPIO_NR(1,22));
 }
+
 #endif
+void set_lcd_brt(char set)
+{
+	gpio_direction_output(IMX_GPIO_NR(4,10),set);
+}
 extern void init_st7789_on_spi(void);
 
 void st7789_init_board(void)
 {
 	imx_iomux_v3_setup_multiple_pads(sf_spi_st7789_init, ARRAY_SIZE(sf_spi_st7789_init));
 
-	
+	#if 0
+	//brightless
+	set_lcd_brt(1);
+	/* Reset the LCD */
+	gpio_direction_output(IMX_GPIO_NR(4, 21),  0);
+	mdelay(50);
+	gpio_direction_output(IMX_GPIO_NR(4, 21),  1);
+	#endif
 	init_st7789_on_spi();
 #if 0
 	while(1)
 	{
 	printf("init st7789 \r\n");
 //	mdelay(200);
+	set_lcd_brt();
 	  init_st7789_on_spi();
 /*
 	set_soft_spi_sda(1);

@@ -341,6 +341,8 @@ void test_spi_format(void)
 	mdelay(500);
 	printf("cmd sleep out\n");
 	 
+	printf("SPI_9608_read ID =%x\n");
+	SPI_9608_read(0x04);
 	printf("++++++++++++++++++++++++++++\n");
 	printf("read display display status\n");
 	//page 167
@@ -357,6 +359,39 @@ void test_spi_format(void)
 	SPI_9608_read(0X09);
 	}
 #endif
+}
+void test_display_off(void)
+{
+	int i = 0;
+	SPI_RESET_PIN(0);
+	mdelay(100);
+	SPI_RESET_PIN(1);
+	mdelay(100);
+	printf("reset cmd11\n");
+	SPI_9608_WR_CMD(0x01);
+	mdelay(10);
+	SPI_9608_WR_CMD(0x11);
+	mdelay(500);
+	printf("SPI_9608_read ID =%x\n");
+	SPI_9608_read(0x04);
+	
+	
+	printf("++++++++++++++++++++++++++++\n");
+	printf("read display display status\n");
+	//page 167
+	while(1)
+	{
+	SPI_9608_WR_CMD(0X28);//DISON
+	SPI_9608_read(0X09);
+	mdelay(500);
+	SPI_9608_WR_CMD(0X29);
+	SPI_9608_read(0X09);
+	mdelay(500);		
+	i++;
+	if(i>5)
+		return;
+	}
+
 }
 void init_st7789_on_spi(void)
 {
@@ -379,8 +414,10 @@ void init_st7789_on_spi(void)
 	mdelay(100);
 	SPI_RESET_PIN(1);
 	mdelay(100);
-	printf("reset cmd11\n");
+	printf("reset cmd555555555555551\n");
+
 	SPI_9608_WR_CMD(0x01);
+	test_display_off();
 	mdelay(10);
 
 
@@ -396,7 +433,7 @@ void init_st7789_on_spi(void)
 	//--------------------------------ST7789S ----------------------------------// 
 	//RGBCTRL (B1h): RGB Interface Control
 	SPI_9608_WR_CMD(0xb1); 
-	SPI_9608_WR_PAR(0x42); 
+	SPI_9608_WR_PAR(0x42);//42
 	SPI_9608_WR_PAR(0x18); 
 	SPI_9608_WR_PAR(0x1a); 
 	//--------------------------------ST7789S ----------------------------------//
@@ -471,4 +508,5 @@ void init_st7789_on_spi(void)
 
 	SPI_9608_WR_CMD(0x29);
 	mdelay(20);	
+	SPI_9608_WR_CMD(0x2c);
 }

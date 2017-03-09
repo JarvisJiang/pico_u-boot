@@ -80,7 +80,9 @@ void mxs_lcd_get_panel(struct display_panel *dispanel)
  * video=ctfb:x:800,y:480,depth:24,mode:0,pclk:29851,
  * 	 le:89,ri:164,up:23,lo:10,hs:10,vs:10,sync:0,vmode:0
  */
+/*
 
+*/
 static void mxs_lcd_init(GraphicDevice *panel,
 			struct ctfb_res_modes *mode, int bpp)
 {
@@ -88,9 +90,19 @@ static void mxs_lcd_init(GraphicDevice *panel,
 	uint32_t word_len = 0, bus_width = 0;
 	uint8_t valid_data = 0;
 
+	printf("mode\n");
+	printf("mode.xres = %d\n", mode->xres);
+	printf("mode.yres = %d\n", mode->yres);
+	printf("mode.pixclock = %d\n", mode->pixclock);
+	printf("bpp = %d\n", bpp);
+	
+	printf("base_reg_lcd2 = 0x%x\n",LCDIF2_BASE_ADDR);
 	/* Kick in the LCDIF clock */
 	mxs_set_lcdclk(panel->isaBase, PS2KHZ(mode->pixclock));
-
+	printf("base_reg_lcd2 = 0x%x\n",(int)panel->isaBase);
+	//regs->hw_lcdif_vdctrl0
+	printf("regs->hw_lcdif_vdctrl0 = 0x%x\n",(int)regs->hw_lcdif_vdctrl0);
+	printf("regs->hw_lcdif_vdctrl0 = 0x%x\n",(int)&regs->hw_lcdif_vdctrl0);
 	/* Restart the LCDIF block */
 	mxs_reset_block((struct mxs_register_32 *)&regs->hw_lcdif_ctrl);
 
@@ -128,11 +140,29 @@ static void mxs_lcd_init(GraphicDevice *panel,
 
 	writel((mode->yres << LCDIF_TRANSFER_COUNT_V_COUNT_OFFSET) | mode->xres,
 		&regs->hw_lcdif_transfer_count);
-
+#if 1
 	writel(LCDIF_VDCTRL0_ENABLE_PRESENT | LCDIF_VDCTRL0_ENABLE_POL |
 		LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT |
 		LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT |
 		mode->vsync_len, &regs->hw_lcdif_vdctrl0);
+#else
+	/*
+	LCDIF_VDCTRL0_ENABLE_PRESENT
+	LCDIF_VDCTRL0_ENABLE_POL 			默认 DE 低电平有效  设置高电平有效
+	LCDIF_VDCTRL0_HSYNC_POL 			高电平有效
+	LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT
+	LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT
+	*/
+//	writel(LCDIF_VDCTRL0_ENABLE_PRESENT | LCDIF_VDCTRL0_ENABLE_POL|
+//		mode->vsync_len, &regs->hw_lcdif_vdctrl0); 
+		//LCDIF_VDCTRL0_ENABLE_POL || LCDIF_VDCTRL0_HSYNC_POL
+//		LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT |
+//		LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT |
+//LCDIF_VDCTRL0_DOTCLK_POL
+writel( LCDIF_VDCTRL0_ENABLE_POL |
+		LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT |	   //LCDIF_VDCTRL0_ENABLE_PRESENT |
+		mode->vsync_len, &regs->hw_lcdif_vdctrl0);//LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT |
+#endif
 	writel(mode->upper_margin + mode->lower_margin +
 		mode->vsync_len + mode->yres,
 		&regs->hw_lcdif_vdctrl1);
@@ -148,9 +178,14 @@ static void mxs_lcd_init(GraphicDevice *panel,
 		&regs->hw_lcdif_vdctrl4);
 
 	writel(panel->frameAdrs, &regs->hw_lcdif_cur_buf);
+	printf("regs->hw_lcdif_cur_buf = %x\n",(int)regs->hw_lcdif_cur_buf);
+	printf("&regs->hw_lcdif_cur_buf = %x\n",(int)&regs->hw_lcdif_cur_buf);
+	printf("*regs->hw_lcdif_cur_buf = %x\n",*((int*)regs->hw_lcdif_cur_buf));
+	printf("cur_ panel->frameAdrs = %x\n",(int)panel->frameAdrs);
 	writel(panel->frameAdrs, &regs->hw_lcdif_next_buf);
-
+	printf("next panel->frameAdrs = %x\n",(int)panel->frameAdrs);
 	/* Flush FIFO first */
+	printf("&regs->hw_lcdif_ctrl1_set =%x\n", (int)&regs->hw_lcdif_ctrl1_set);
 	writel(LCDIF_CTRL1_FIFO_CLEAR, &regs->hw_lcdif_ctrl1_set);
 
 #ifndef CONFIG_VIDEO_MXS_MODE_SYSTEM
@@ -162,7 +197,10 @@ static void mxs_lcd_init(GraphicDevice *panel,
 	writel(LCDIF_CTRL1_FIFO_CLEAR, &regs->hw_lcdif_ctrl1_clr);
 
 	/* RUN! */
+	printf("&regs->hw_lcdif_ctrl_set =%x\n", (int)&regs->hw_lcdif_ctrl_set);
 	writel(LCDIF_CTRL_RUN, &regs->hw_lcdif_ctrl_set);
+	printf("&regs->hw_lcdif_ctrl =%x\n", (int)&regs->hw_lcdif_ctrl);
+	//writel(LCDIF_CTRL_RUN, &regs->hw_lcdif_ctrl);//hw_lcdif_ctrl
 }
 
 void lcdif_power_down()
@@ -287,6 +325,7 @@ void *video_hw_init(void)
 	 * sets the RUN bit, then waits until it gets cleared and repeats this
 	 * infinitelly. This way, we get smooth continuous updates of the LCD.
 	 */
+	printf("CONFIG_VIDEO_MXS_MODE_SYSTEM\n");
 	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)MXS_LCDIF_BASE;
 
 	memset(&desc, 0, sizeof(struct mxs_dma_desc));

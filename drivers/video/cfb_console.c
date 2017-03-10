@@ -2132,9 +2132,11 @@ defined(CONFIG_SANDBOX) || defined(CONFIG_X86)
 
 void video_clear(void)
 {
+	int i =0;
 	if (!video_fb_address)
 		return;
-#ifdef VIDEO_HW_RECTFILL
+#if  0 //#ifdef VIDEO_HW_RECTFILL
+	printf("VIDEO_HW_RECTFILL\n");
 	video_hw_rectfill(VIDEO_PIXEL_SIZE,	/* bytes per pixel */
 			  0,			/* dest pos x */
 			  0,			/* dest pos y */
@@ -2143,19 +2145,44 @@ void video_clear(void)
 			  bgx			/* fill color */
 	);
 #else
+	printf("video_fb_address2222222= 0x%x, bgx = 0x%x\n",(unsigned int)video_fb_address,bgx);
 	memsetl(video_fb_address,
 		(VIDEO_VISIBLE_ROWS * VIDEO_LINE_LEN) / sizeof(int), bgx);
+		
+		
 #endif
+		mdelay(200);
+		i++;
+		#if 1
+		if(bgx==0x2f)
+		{
+			bgx = 0xfc0;
+		}
+		else
+		{
+			bgx = 0x2f;
+		}
+		#else
+		if(bgx==0xffffff)
+		{
+			bgx = 0;
+		}
+		else
+		{
+			bgx = 0xffffff;
+		}
+		#endif
+
 }
 
 static int video_init(void)
 {
 	unsigned char color8;
-
+	printf("video_init\n");
 	pGD = video_hw_init();
 	if (pGD == NULL)
 		return -1;
-
+	printf("video_init2\n");
 	video_fb_address = (void *) VIDEO_FB_ADRS;
 #ifdef CONFIG_VIDEO_HW_CURSOR
 	video_init_hw_cursor(VIDEO_FONT_WIDTH, VIDEO_FONT_HEIGHT);
@@ -2164,6 +2191,7 @@ static int video_init(void)
 	cfb_do_flush_cache = cfb_fb_is_in_dram() && dcache_status();
 
 	/* Init drawing pats */
+	printf("VIDEO_DATA_FORMAT =%x\n",VIDEO_DATA_FORMAT);
 	switch (VIDEO_DATA_FORMAT) {
 	case GDF__8BIT_INDEX:
 		video_set_lut(0x01, CONSOLE_FG_COL, CONSOLE_FG_COL,
@@ -2233,12 +2261,21 @@ static int video_init(void)
 		break;
 	}
 	eorx = fgx ^ bgx;
+	printf("video_fb_address =%x\n", (int)(*((int*)video_fb_address)));
+	bgx = 0xffffffff;
+   while(1)
+	{
+		
+		video_clear();
+		mdelay(100);
+		printf("video_clear\n");
 
-	video_clear();
+	}
+	
 
 #ifdef CONFIG_VIDEO_LOGO
 	/* Plot the logo and get start point of console */
-	debug("Video: Drawing the logo ...\n");
+	printf("Video: Drawing the logo ...\n");
 	video_console_address = video_logo();
 #else
 	video_console_address = video_fb_address;

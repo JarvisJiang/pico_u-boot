@@ -234,13 +234,13 @@ UART2_CTS               SPI3_MISO 		MX6_PAD_UART2_CTS_B__ECSPI3_MOSI
 #define ST7789_SPI_BUS  2   //第几个SPI  从1到4   需要修改相关函数 board_spi_cs_gpio
 #define ST7789_SPI_CS  0   //第几个 CS 0
 static unsigned char  s_buf[128];
-static int SPI_9608_WR_CMD(int data)
+ int SPI_9608_WR_CMD(int data)
 {
 
 	int ret;
 	unsigned char readbuf[128];
 	data = data;
-	s_buf[0] =  (unsigned char)((data>>1)&0x3f);
+	s_buf[0] =  (unsigned char)((data>>1)&0x7f);
 	s_buf[1] = (data&0x1)<<7;
 
 	/*
@@ -431,7 +431,7 @@ static void draw_sandisk_log(void)
    send_data_cmd(h_Y_end); 
    send_data_cmd(l_Y_end); 
 
-   send_ctrl_cmd(0x29);
+   //send_ctrl_cmd(0x29);
    send_ctrl_cmd(0x2C); 
    
  //  send_ctrl_cmd(0x37);
@@ -562,116 +562,7 @@ static void sw_clear_panel(unsigned int color)
    }
 }
 
-
-static void init_lcm_registers(void)
-	{
-		SPI_RESET_PIN(0);
-		mdelay(100);
-		SPI_RESET_PIN(1);
-		mdelay(100);
-		send_ctrl_cmd(0x11);
-		mdelay(120);  
-				
-		send_ctrl_cmd(0x36);
-		send_data_cmd(0x00);//40
-		
-		send_ctrl_cmd(0x3a);
-		send_data_cmd(0x06);//06
-		
-		send_ctrl_cmd(0xb2);
-		send_data_cmd(0x28);
-		send_data_cmd(0x28);
-		send_data_cmd(0x05);
-		send_data_cmd(0x33);
-		send_data_cmd(0x33);
-		
-		
-		
-		send_ctrl_cmd(0xb7);
-		send_data_cmd(0x35);
-		
-		send_ctrl_cmd(0xbb);
-		send_data_cmd(0x3c);//23
-		
-//		send_ctrl_cmd(0xb1);
-//		send_data_cmd(0x80);
-//		send_data_cmd(0x10);
-		
-		
-		send_ctrl_cmd(0xc0);
-		send_data_cmd(0x2c);
-		
-		send_ctrl_cmd(0xc2);
-		send_data_cmd(0x01);
-		
-		send_ctrl_cmd(0xc3);
-		send_data_cmd(0x05);//14
-		
-		send_ctrl_cmd(0xc4);
-		send_data_cmd(0x20);
-		
-		send_ctrl_cmd(0xc6);
-		send_data_cmd(0x14); // 14
-		
-		send_ctrl_cmd(0xd0);
-		send_data_cmd(0xa4);
-		send_data_cmd(0xa1);
-		
-		send_ctrl_cmd(0xe0);
-		send_data_cmd(0xd0);
-		send_data_cmd(0x00);
-		send_data_cmd(0x02);
-		send_data_cmd(0x07);
-		send_data_cmd(0x07);
-		send_data_cmd(0x19);
-		send_data_cmd(0x2e);
-		send_data_cmd(0x54);
-		send_data_cmd(0x41);
-		send_data_cmd(0x2d);
-		send_data_cmd(0x17);
-		send_data_cmd(0x18);
-		send_data_cmd(0x14);
-		send_data_cmd(0x18);
-		
-		send_ctrl_cmd(0xe1);
-		send_data_cmd(0xd0);
-		send_data_cmd(0x00);
-		send_data_cmd(0x02);
-		send_data_cmd(0x07);
-		send_data_cmd(0x04);
-		send_data_cmd(0x24);
-		send_data_cmd(0x2c);
-		send_data_cmd(0x44);
-		send_data_cmd(0x42);
-		send_data_cmd(0x1c);
-		send_data_cmd(0x1a);
-		send_data_cmd(0x17);
-		send_data_cmd(0x15);
-        send_data_cmd(0x18);
-		send_ctrl_cmd(0x35);
-		send_data_cmd(0x00);//40
-		
-//		send_ctrl_cmd(0x44);
-//		send_data_cmd(0x19);
-		
-		send_ctrl_cmd(0x2a);
-		send_data_cmd(0x00);
-		send_data_cmd(0x00);
-		send_data_cmd(0x00);
-		send_data_cmd(0xef);
-		
-		send_ctrl_cmd(0x2b);
-		send_data_cmd(0x00);
-		send_data_cmd(0x00);
-		send_data_cmd(0x01);
-		send_data_cmd(0x3f);
-		
-		send_ctrl_cmd(0x29);		
-
-		sw_clear_panel(0x0);	
-
-	}
-
+static void origial_init(void);
 void init_st7789_on_spi(void)
 {
 	// VCI=2.8V
@@ -691,18 +582,83 @@ void init_st7789_on_spi(void)
 	s_buf[9] = 0xff;
 
 	SPI_RESET_PIN(0);
-	mdelay(100);
-	SPI_RESET_PIN(1);
-	mdelay(100);
-	printf("reset cmd555555555555551\n");
-#if 0
-	SPI_9608_WR_CMD(0x01);
-	test_display_off();
 	mdelay(10);
+	SPI_RESET_PIN(1);
+	mdelay(120);
+	printf("origial_init\n");
+	origial_init();
+	
+#if 0	
+	printf("***********************314*******");
+
+	//SPI_9608_WR_CMD(0x01);
+	 mdelay(120);
+	SPI_9608_WR_CMD(0x11);
+	 mdelay(120);
+	
+    SPI_9608_WR_CMD(0xb0); 
+	SPI_9608_WR_PAR(0x11); 
+	SPI_9608_WR_PAR(0xf0);
+	
+	//RGBCTRL (B1h): RGB Interface Control
+	SPI_9608_WR_CMD(0xb1); 
+	SPI_9608_WR_PAR(0x42);//42  cb  (闪屏)c9   42 能显示颜色
+	SPI_9608_WR_PAR(0x12); 
+	SPI_9608_WR_PAR(0x14); 
+	
+	#if 0
+	SPI_9608_WR_CMD(0xb2); 
+	SPI_9608_WR_PAR(0x0c); 
+	SPI_9608_WR_PAR(0x0c); 
+	SPI_9608_WR_PAR(0x00); 
+	SPI_9608_WR_PAR(0x33); 
+	SPI_9608_WR_PAR(0x33); 
+	#endif
+	
+/*
+有颜色的值	
+	SPI_9608_WR_PAR(0x42);//42  cb  (闪屏)c9   42 能显示颜色
+	SPI_9608_WR_PAR(0x18); 
+	SPI_9608_WR_PAR(0x1a); 
+*/
+	
+	SPI_9608_WR_CMD(0x35);
+	SPI_9608_WR_PAR(0x00);
+	
+	SPI_9608_WR_CMD(0x3A);
+	SPI_9608_WR_PAR(0x06);
+	
+	
+	SPI_9608_WR_CMD(0x36);
+	SPI_9608_WR_PAR(0x00);
+	
+
+	
+	SPI_9608_WR_CMD(0x29);
+	mdelay(1000);	
+	SPI_9608_WR_CMD(0x2c);
+	
+	//draw_sandisk_log();
+	
+  //  SPI_9608_WR_CMD(0x10);
+	
+	//mdelay(1200);
+	
+	printf("rgb  rgb 1514 *************.... \n");
+	//drv_video_init();
+#endif 
+}
 
 
+
+
+
+static void origial_init(void)
+{
+	
+	//ST7789+2.4CTC
 	SPI_9608_WR_CMD(0x11); 
-	mdelay(120); 
+	mdelay(120);                
 	//Delay 120ms                                      //Delay 120ms 
 	//--------------------------------------Display Setting---------------------------------------// 
 	SPI_9608_WR_CMD(0x36); 
@@ -713,7 +669,7 @@ void init_st7789_on_spi(void)
 	//--------------------------------ST7789S ----------------------------------// 
 	//RGBCTRL (B1h): RGB Interface Control
 	SPI_9608_WR_CMD(0xb1); 
-	SPI_9608_WR_PAR(0x42);//42
+	SPI_9608_WR_PAR(0x42); 
 	SPI_9608_WR_PAR(0x18); 
 	SPI_9608_WR_PAR(0x1a); 
 	//--------------------------------ST7789S ----------------------------------//
@@ -789,10 +745,11 @@ void init_st7789_on_spi(void)
 	SPI_9608_WR_CMD(0x29);
 	mdelay(20);	
 	SPI_9608_WR_CMD(0x2c);
-	init_lcm_registers();
-	
-	printf("draw sandisk log \n");
-	#endif
+}
+
+/*
+void spi_draw_ture(void)
+{
 	while(1)
 	{
 		printf("clefffar\n");
@@ -803,6 +760,6 @@ void init_st7789_on_spi(void)
 	
 	sw_clear_panel(0);
 	draw_sandisk_log();
-	}
-	
+	}	
 }
+*/

@@ -412,8 +412,10 @@ struct lcd_panel_info_t {
 	struct fb_videomode mode;
 };
 
+void st7789_init_board(void);
 void do_enable_parallel_lcd(struct lcd_panel_info_t const *dev)
 {
+	
 	enable_lcdif_clock(dev->lcdif_base_addr);
 
 	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
@@ -427,29 +429,31 @@ void do_enable_parallel_lcd(struct lcd_panel_info_t const *dev)
 	gpio_direction_output(IMX_GPIO_NR(4, 10) , 1);
 }
 
+
 static struct lcd_panel_info_t const displays[] = {{
 	.lcdif_base_addr = LCDIF1_BASE_ADDR,
-	.depth = 16,
+	.depth = 18,
 	.enable	= do_enable_parallel_lcd,
 	.mode	= {
-		.name			= "TFT43AB",
-		.xres           = 320,
-		.yres           = 240,
-		.pixclock       = 180000,
-		.left_margin    = 4,
-		.right_margin   = 4,
-		.upper_margin   = 10,
-		.lower_margin   = 10,
-		.hsync_len      = 38,
-		.vsync_len      = 8,
+		.name			= "st7789",
+		.xres           = 240,
+		.yres           = 320,
+		.pixclock       = 380000,
+		.left_margin    = 10, // hbp
+		.right_margin   = 38,  // hfp 
+		.upper_margin   = 4, //vbp 
+		.lower_margin   = 50, //vfp 增加50 
+		.hsync_len      = 5, //hpw
+		.vsync_len      = 1,  //vs
 		.sync           = 0,
 		.vmode          = FB_VMODE_NONINTERLACED
 } } };
-
+extern void st7789_init_board(void);
 int board_video_skip(void)
 {
 	int i;
 	int ret;
+	printf("board_video_skip\n");
 	char const *panel = getenv("panel");
 	if (!panel) {
 		panel = displays[0].mode.name;
@@ -478,7 +482,6 @@ int board_video_skip(void)
 		printf("unsupported panel %s\n", panel);
 		return -EINVAL;
 	}
-
 	return 0;
 }
 #endif
@@ -578,11 +581,11 @@ int board_ehci_hcd_init(int port)
 	return 0;
 }
 #endif
-
+extern void init_st7789_on_spi(void);
 int board_early_init_f(void)
 {
 	setup_iomux_uart();
-
+	
 	return 0;
 }
 
@@ -623,7 +626,7 @@ int power_init_board(void)
 	/* SW1B standby voltage set to 0.975V */
 	reg = 0xb;
 	pmic_reg_write(pfuze, PFUZE300_SW1BSTBY, reg);
-
+	
 	return 0;
 }
 
@@ -873,7 +876,7 @@ void set_lcd_brt(char set)
 {
 	gpio_direction_output(IMX_GPIO_NR(4,10),set);
 }
-extern void init_st7789_on_spi(void);
+
 
 void st7789_init_board(void)
 {

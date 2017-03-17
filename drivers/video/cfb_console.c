@@ -2129,7 +2129,7 @@ defined(CONFIG_SANDBOX) || defined(CONFIG_X86)
 #endif
 	return 0;
 }
-
+extern  int SPI_9608_WR_CMD(int data);
 void video_clear(void)
 {
 	int i =0;
@@ -2145,22 +2145,24 @@ void video_clear(void)
 			  bgx			/* fill color */
 	);
 #else
-	printf("video_fb_address2222222= 0x%x, bgx = 0x%x\n",(unsigned int)video_fb_address,bgx);
+	SPI_9608_WR_CMD(0x2c);
+	printf("video_fb_address34433= 0x%x, bgx = 0x%x\n",(unsigned int)video_fb_address,bgx);
+    
 	memsetl(video_fb_address,
-		(VIDEO_VISIBLE_ROWS * VIDEO_LINE_LEN) / sizeof(int), bgx);
+		320*240*4 / sizeof(int), bgx);
 		
 		
 #endif
-		mdelay(200);
+		mdelay(500);
 		i++;
 		#if 1
-		if(bgx==0x2f)
+		if(bgx==0)
 		{
-			bgx = 0xfc0;
+			bgx =0xff ;
 		}
 		else
 		{
-			bgx = 0x2f;
+			bgx = 0;
 		}
 		#else
 		if(bgx==0xffffff)
@@ -2178,11 +2180,10 @@ void video_clear(void)
 static int video_init(void)
 {
 	unsigned char color8;
-	printf("video_init\n");
+
 	pGD = video_hw_init();
 	if (pGD == NULL)
 		return -1;
-	printf("video_init2\n");
 	video_fb_address = (void *) VIDEO_FB_ADRS;
 #ifdef CONFIG_VIDEO_HW_CURSOR
 	video_init_hw_cursor(VIDEO_FONT_WIDTH, VIDEO_FONT_HEIGHT);
@@ -2262,15 +2263,8 @@ static int video_init(void)
 	}
 	eorx = fgx ^ bgx;
 	printf("video_fb_address =%x\n", (int)(*((int*)video_fb_address)));
-	bgx = 0xffffffff;
-   while(1)
-	{
-		
-		video_clear();
-		mdelay(100);
-		printf("video_clear\n");
+	video_clear();
 
-	}
 	
 
 #ifdef CONFIG_VIDEO_LOGO
@@ -2305,7 +2299,7 @@ int drv_video_init(void)
 {
 	int skip_dev_init;
 	struct stdio_dev console_dev;
-
+	printf("drv_video_init\n");
 	/* Check if video initialization should be skipped */
 	if (board_video_skip())
 		return 0;

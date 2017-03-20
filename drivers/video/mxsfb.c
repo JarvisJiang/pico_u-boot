@@ -22,7 +22,7 @@
 #include <linux/list.h>
 #include <linux/fb.h>
 #include <mxsfb.h>
-#include <stephen_log.h>
+
 #ifdef CONFIG_VIDEO_GIS
 #include <gis.h>
 #endif
@@ -92,14 +92,7 @@ static void memsetl(int *p, int c, int v)
 	while (c--)
 		*(p++) = v;
 }
-static void draw_log(unsigned int *fb)
-{
-	unsigned int *p = fb; 
-	unsigned int c  = sizeof(stephen_log);
-	unsigned int *v = stephen_log;
-	while (c--)
-		*(p++) = *(v++);
-}
+
 static volatile unsigned int fb_offset = 0;
 static void mxs_lcd_init(GraphicDevice *panel,
 			struct ctfb_res_modes *mode, int bpp)
@@ -201,13 +194,13 @@ static void mxs_lcd_init(GraphicDevice *panel,
 		&regs->hw_lcdif_vdctrl3);
 	writel((0 << LCDIF_VDCTRL4_DOTCLK_DLY_SEL_OFFSET) | mode->xres,
 		&regs->hw_lcdif_vdctrl4);
-	//panel->frameAdrs += 50*240;
-	writel(panel->frameAdrs  += 51*240 , &regs->hw_lcdif_cur_buf);
+	//panel->frameAdrs += 50*240;+= 51*240
+	writel(panel->frameAdrs  , &regs->hw_lcdif_cur_buf);//+= 51*240
 	printf("regs->hw_lcdif_cur_buf = %x\n",(int)regs->hw_lcdif_cur_buf);
 	printf("&regs->hw_lcdif_cur_buf = %x\n",(int)&regs->hw_lcdif_cur_buf);
 	printf("*regs->hw_lcdif_cur_buf = %x\n",*((int*)regs->hw_lcdif_cur_buf));
 	printf("cur_ panel->frameAdrs = %x\n",(int)panel->frameAdrs);
-	writel(panel->frameAdrs  += 51*240, &regs->hw_lcdif_next_buf);
+	writel(panel->frameAdrs, &regs->hw_lcdif_next_buf);//+= 51*240
 	printf("next panel->frameAdrs = %x\n",(int)panel->frameAdrs);
 	/* Flush FIFO first */  
 	printf("&regs->hw_lcdif_ctrl1_set =%x\n", (int)&regs->hw_lcdif_ctrl1_set);
@@ -246,8 +239,7 @@ static void mxs_lcd_init(GraphicDevice *panel,
 	
 
 #endif
-	memsetl(panel->frameAdrs,
-		(320 * 240 *5) / sizeof(int), 0xff00);
+
 	/* FIFO cleared */
 	printf("LCDIF_CTRL1_FIFO_CLEAR before mdelay 5000 .............\n");
 //	mdelay(3000);
@@ -262,8 +254,10 @@ static void mxs_lcd_init(GraphicDevice *panel,
 //		(VIDEO_VISIBLE_ROWS * VIDEO_LINE_LEN) / sizeof(int), bgx);
 
 	writel(LCDIF_CTRL_RUN, &regs->hw_lcdif_ctrl_set);
-	
-	mdelay(2000);
+	mdelay(200);
+	printf("panel->frameAdrs = %x\n",panel->frameAdrs);
+//	draw_log(panel->frameAdrs);
+//	mdelay(2000);
 	printf("LCDIF_CTRL_RUN after mdelay 5000\n");
 	printf("LCDIF_CTRL_RUN after mdelay 5000\n");
 	fram_size = (320 * 240 *5) / sizeof(int);
@@ -449,7 +443,7 @@ void *video_hw_init(void)
 		return NULL;
 	}
 
-	panel.memSize = mode.xres * mode.yres * panel.gdfBytesPP*2;
+	panel.memSize = mode.xres * mode.yres * panel.gdfBytesPP;
 
 
 	/* Allocate framebuffer */
@@ -465,7 +459,7 @@ void *video_hw_init(void)
 	memset(fb, 0, panel.memSize);
 
 	panel.frameAdrs = (u32)fb;
-
+	printf("panel.frameAdrs = %x\n",panel.frameAdrs);
 	printf("%s\n", panel.modeIdent);
 	/**/
  //    st7789_init_board();

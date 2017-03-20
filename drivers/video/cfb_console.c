@@ -92,6 +92,12 @@
 #include <version.h>
 #include <malloc.h>
 #include <linux/compiler.h>
+#if 1
+#define fb_debug(format,...) printf("File: "__FILE__", Line: %05d: "format"\n", __LINE__, ##__VA_ARGS__)  
+#else
+#define  fb_debug(format,...) {}
+#endif
+
 
 /*
  * Console device defines with SMI graphic
@@ -186,7 +192,8 @@
 #include <linux/types.h>
 #include <stdio_dev.h>
 #include <video_font.h>
-
+//#include <stephen_log.h>
+#include <test2302_log.h>
 #if defined(CONFIG_CMD_DATE)
 #include <rtc.h>
 #endif
@@ -1460,7 +1467,7 @@ int video_display_bitmap(ulong bmp_image, int x, int y)
 	unsigned char *dst = NULL;
 	ulong len;
 #endif
-
+	fb_debug("video_display_bitmap\n");
 	WATCHDOG_RESET();
 
 	if (!((bmp->header.signature[0] == 'B') &&
@@ -1686,6 +1693,7 @@ int video_display_bitmap(ulong bmp_image, int x, int y)
 			}
 			break;
 		case GDF_32BIT_X888RGB:
+			printf("GDF_32BIT_X888RGB\n");
 			while (ycount--) {
 				WATCHDOG_RESET();
 				xcount = width;
@@ -1697,9 +1705,10 @@ int video_display_bitmap(ulong bmp_image, int x, int y)
 				bmap += padded_line;
 				fb -= (VIDEO_VISIBLE_COLS + width) *
 							VIDEO_PIXEL_SIZE;
-			}
+			}	
 			break;
 		case GDF_24BIT_888RGB:
+		printf("GDF_24BIT_888RGB\n");
 			while (ycount--) {
 				WATCHDOG_RESET();
 				xcount = width;
@@ -1868,7 +1877,8 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 	unsigned char r, g, b, *logo_red, *logo_blue, *logo_green;
 	unsigned char *source;
 	unsigned char *dest;
-
+	
+	unsigned int *pfirst_picture = (unsigned int *)test2302_log;
 #ifdef CONFIG_SPLASH_SCREEN_ALIGN
 	if (x == BMP_ALIGN_CENTER)
 		x = max(0, (int)(VIDEO_VISIBLE_COLS - VIDEO_LOGO_WIDTH) / 2);
@@ -1880,7 +1890,13 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 	else if (y < 0)
 		y = max(0, (int)(VIDEO_VISIBLE_ROWS - VIDEO_LOGO_HEIGHT + y + 1));
 #endif /* CONFIG_SPLASH_SCREEN_ALIGN */
-
+	fb_debug("green \n");
+	fb_debug(" x = %d,0x%x\n  \
+			  y =  %d,0x%x\n  \
+			  width =  %d,0x%x\n \
+			  VIDEO_PIXEL_SIZE = %d\n",
+			  x,x,y,y,width,width,VIDEO_PIXEL_SIZE);
+	fb_debug("skip = %d \n",skip);
 	dest = (unsigned char *)screen + (y * width  + x) * VIDEO_PIXEL_SIZE;
 
 #ifdef CONFIG_VIDEO_BMP_LOGO
@@ -1895,6 +1911,7 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 		logo_red[i] = (bmp_logo_palette[i] & 0x0f00) >> 4;
 		logo_green[i] = (bmp_logo_palette[i] & 0x00f0);
 		logo_blue[i] = (bmp_logo_palette[i] & 0x000f) << 4;
+
 	}
 #else
 	source = linux_logo;
@@ -1902,7 +1919,12 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 	logo_green = linux_logo_green;
 	logo_blue = linux_logo_blue;
 #endif
+	printf("plot_logo_or_black_VIDEO_DATA_FORMAT =%d\n",VIDEO_DATA_FORMAT);
+	fb_debug("plot_logo_or_black_VIDEO_DATA_FORMAT =%d\n",VIDEO_DATA_FORMAT);
+	printf("dest = %x\n", (unsigned int)dest);
 
+
+#if 1
 	if (VIDEO_DATA_FORMAT == GDF__8BIT_INDEX) {
 		for (i = 0; i < VIDEO_LOGO_COLORS; i++) {
 			video_set_lut(i + VIDEO_LOGO_LUT_OFFSET,
@@ -1910,6 +1932,7 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 				      logo_blue[i]);
 		}
 	}
+
 
 	while (ycount--) {
 #if defined(VIDEO_FB_16BPP_PIXEL_SWAP)
@@ -1955,12 +1978,17 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 							 (b >> 3)));
 				break;
 			case GDF_32BIT_X888RGB:
+			  #if 0
 				*(unsigned long *) dest =
+				
 					SWAP32((unsigned long) (
 							(r << 16) |
 							(g <<  8) |
 							 b));
-				break;
+			  #else
+				*(unsigned long *) dest = *(pfirst_picture++);
+			  #endif	
+			 break;
 			case GDF_24BIT_888RGB:
 #ifdef VIDEO_FB_LITTLE_ENDIAN
 				dest[0] = b;
@@ -1978,12 +2006,22 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 		}
 		dest += skip;
 	}
+
+#endif	
+
+
+	
+	printf("plot_logo_or_black draw_log....\n");
+
 #ifdef CONFIG_VIDEO_BMP_LOGO
 	free(logo_red);
 	free(logo_green);
 	free(logo_blue);
-#endif
+
+
+
 }
+#endif
 
 static void *video_logo(void)
 {
@@ -1992,11 +2030,12 @@ static void *video_logo(void)
 	__maybe_unused int y_off = 0;
 	__maybe_unused ulong addr;
 	__maybe_unused char *s;
-
+	
 	splash_get_pos(&video_logo_xpos, &video_logo_ypos);
-
+	printf("video_logo\n");
 #ifdef CONFIG_SPLASH_SCREEN
 	s = getenv("splashimage");
+	printf("screnn s = %s\n",s);
 	if (s != NULL) {
 		splash_screen_prepare();
 		addr = simple_strtoul(s, NULL, 16);
@@ -2009,7 +2048,12 @@ static void *video_logo(void)
 		}
 	}
 #endif /* CONFIG_SPLASH_SCREEN */
-
+	fb_debug("video_fb_address =%x\n \
+				VIDEO_COLS = %d\n \
+				video_logo_xpos =%d\n \
+				video_logo_ypos =%d\n", 
+				video_fb_address,VIDEO_COLS,
+		  video_logo_xpos, video_logo_ypos );
 	logo_plot(video_fb_address, VIDEO_COLS,
 		  video_logo_xpos, video_logo_ypos);
 
@@ -2033,6 +2077,8 @@ static void *video_logo(void)
 		return video_fb_address + video_logo_height * VIDEO_LINE_LEN;
 	}
 #endif
+
+
 	if (board_cfb_skip())
 		return 0;
 
@@ -2065,6 +2111,7 @@ static void *video_logo(void)
 		}
 	} else
 		video_drawstring(VIDEO_INFO_X, VIDEO_INFO_Y, (uchar *) info);
+
 
 #ifdef CONFIG_CONSOLE_EXTRA_INFO
 	{
@@ -2101,6 +2148,7 @@ static void *video_logo(void)
 			}
 		}
 	}
+
 #endif
 
 	return (video_fb_address + video_logo_height * VIDEO_LINE_LEN);
@@ -2130,6 +2178,19 @@ defined(CONFIG_SANDBOX) || defined(CONFIG_X86)
 	return 0;
 }
 extern  int SPI_9608_WR_CMD(int data);
+static void draw_log(unsigned int *fb)
+{
+	// unsigned int *p = fb; 
+	 // int c  = sizeof(stephen_log)/sizeof(int);
+	// unsigned int *v = (unsigned int *)stephen_log;
+	// printf("size of stephen_log =%d\n", c);
+	// while (c--)
+	// {
+		// *(p++) = *(v++);
+	// }
+		
+	// printf("stephen_log over \n");
+}
 void video_clear(void)
 {
 	int i =0;
@@ -2145,42 +2206,17 @@ void video_clear(void)
 			  bgx			/* fill color */
 	);
 #else
-	SPI_9608_WR_CMD(0x2c);
-	printf("video_fb_address34433= 0x%x, bgx = 0x%x\n",(unsigned int)video_fb_address,bgx);
-    
-	memsetl(video_fb_address,
-		320*240*4 / sizeof(int), bgx);
-		
-		
-#endif
-		mdelay(500);
-		i++;
-		#if 1
-		if(bgx==0)
-		{
-			bgx =0xff ;
-		}
-		else
-		{
-			bgx = 0;
-		}
-		#else
-		if(bgx==0xffffff)
-		{
-			bgx = 0;
-		}
-		else
-		{
-			bgx = 0xffffff;
-		}
-		#endif
 
+	printf("video_fb_address34433= 0x%x, bgx = 0x%x\n",(unsigned int)video_fb_address,bgx);
+ 
+	memsetl(video_fb_address,
+		320*240*4 / sizeof(int), 0);
+#endif
 }
 
 static int video_init(void)
 {
 	unsigned char color8;
-
 	pGD = video_hw_init();
 	if (pGD == NULL)
 		return -1;
@@ -2274,14 +2310,16 @@ static int video_init(void)
 #else
 	video_console_address = video_fb_address;
 #endif
+	fb_debug("video_logo after\n");
 
 	/* Initialize the console */
 	console_col = 0;
 	console_row = 0;
-
+	fb_debug("flush_cache(VIDEO_FB_ADRS, VIDEO_SIZE)\n");
+	fb_debug("VIDEO_FB_ADRS = %x \n ,VIDEO_SIZE =%d\n ",VIDEO_FB_ADRS,VIDEO_SIZE);
 	if (cfb_do_flush_cache)
 		flush_cache(VIDEO_FB_ADRS, VIDEO_SIZE);
-
+	mdelay(3000);
 	return 0;
 }
 

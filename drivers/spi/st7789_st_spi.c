@@ -669,7 +669,7 @@ static void origial_init(void)
 	//--------------------------------ST7789S ----------------------------------// 
 	//RGBCTRL (B1h): RGB Interface Control
 	SPI_9608_WR_CMD(0xb1); 
-	SPI_9608_WR_PAR(0x42); 
+	SPI_9608_WR_PAR(0xc0); 
 	SPI_9608_WR_PAR(0x18); 
 	SPI_9608_WR_PAR(0x1a); 
 	//--------------------------------ST7789S ----------------------------------//

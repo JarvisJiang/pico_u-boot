@@ -30,9 +30,12 @@
 #define	PS2KHZ(ps)	(1000000000UL / (ps))
 #define	WAIT_FOR_VSYNC_TIMEOUT	1000000
 
+
+
+
 static GraphicDevice panel;
 struct mxs_dma_desc desc;
-
+extern	void st7789_init_board(void);
 /**
  * mxsfb_system_setup() - Fine-tune LCDIF configuration
  *
@@ -80,18 +83,7 @@ void mxs_lcd_get_panel(struct display_panel *dispanel)
  * video=ctfb:x:800,y:480,depth:24,mode:0,pclk:29851,
  * 	 le:89,ri:164,up:23,lo:10,hs:10,vs:10,sync:0,vmode:0
  */
-/*
 
-*/
-
-/*
-
-*/
-static void memsetl(int *p, int c, int v)
-{
-	while (c--)
-		*(p++) = v;
-}
 
 static volatile unsigned int fb_offset = 0;
 static void mxs_lcd_init(GraphicDevice *panel,
@@ -100,25 +92,9 @@ static void mxs_lcd_init(GraphicDevice *panel,
 	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)(panel->isaBase);
 	uint32_t word_len = 0, bus_width = 0;
 	uint8_t valid_data = 0;
-    int bgc = 0;
-	unsigned int fram_size = 0;
-	int v_size = 320;
 	st7789_init_board();
-	printf("st7789_init_board()\n");
-
-	printf("mode\n");
-	printf("mode.xres = %d\n", mode->xres);
-	printf("mode.yres = %d\n", mode->yres);
-	printf("mode.pixclock = %d\n", mode->pixclock);
-	printf("bpp = %d\n", bpp);
-    printf("base_reg_lcd2 = 0x%x\n",LCDIF2_BASE_ADDR);
-
 	/* Kick in the LCDIF clock */
 	mxs_set_lcdclk(panel->isaBase, PS2KHZ(mode->pixclock));
-	printf("base_reg_lcd2 = 0x%x\n",(int)panel->isaBase);
-	//regs->hw_lcdif_vdctrl0
-	printf("regs->hw_lcdif_vdctrl0 = 0x%x\n",(int)regs->hw_lcdif_vdctrl0);
-	printf("regs->hw_lcdif_vdctrl0 = 0x%x\n",(int)&regs->hw_lcdif_vdctrl0);
 	/* Restart the LCDIF block */
 	mxs_reset_block((struct mxs_register_32 *)&regs->hw_lcdif_ctrl);
 	switch (bpp) {
@@ -155,32 +131,12 @@ static void mxs_lcd_init(GraphicDevice *panel,
 
 	writel((mode->yres << LCDIF_TRANSFER_COUNT_V_COUNT_OFFSET) | mode->xres,
 		&regs->hw_lcdif_transfer_count);
-#if 1
-//0xc9
+/*
+change
+*/
 	writel(LCDIF_VDCTRL0_ENABLE_PRESENT | LCDIF_VDCTRL0_ENABLE_POL |LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT|
 		mode->vsync_len, &regs->hw_lcdif_vdctrl0);
-		/*
-		LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT |
-		LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT |
-		*/
-#else
-	/*
-	LCDIF_VDCTRL0_ENABLE_PRESENT
-	LCDIF_VDCTRL0_ENABLE_POL 			默认 DE 低电平有效  设置高电平有效
-	LCDIF_VDCTRL0_HSYNC_POL 			高电平有效
-	LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT
-	LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT
-	*/
-	writel(LCDIF_VDCTRL0_ENABLE_PRESENT | LCDIF_VDCTRL0_HSYNC_POL |
-		mode->vsync_len, &regs->hw_lcdif_vdctrl0); // | LCDIF_VDCTRL0_ENABLE_POL|
-		//LCDIF_VDCTRL0_ENABLE_POL || LCDIF_VDCTRL0_HSYNC_POL
-//		LCDIF_VDCTRL0_VSYNC_PERIOD_UNIT |
-//		LCDIF_VDCTRL0_VSYNC_PULSE_WIDTH_UNIT |
-//LCDIF_VDCTRL0_DOTCLK_POL
 
-
-//		writel( LCDIF_VDCTRL0_ENABLE_PRESENT|mode->vsync_len, &regs->hw_lcdif_vdctrl0);
-#endif
 	writel(mode->upper_margin + mode->lower_margin +
 		mode->vsync_len + mode->yres,
 		&regs->hw_lcdif_vdctrl1);
@@ -194,145 +150,26 @@ static void mxs_lcd_init(GraphicDevice *panel,
 		&regs->hw_lcdif_vdctrl3);
 	writel((0 << LCDIF_VDCTRL4_DOTCLK_DLY_SEL_OFFSET) | mode->xres,
 		&regs->hw_lcdif_vdctrl4);
-	//panel->frameAdrs += 50*240;+= 51*240
-	writel(panel->frameAdrs  , &regs->hw_lcdif_cur_buf);//+= 51*240
-	printf("regs->hw_lcdif_cur_buf = %x\n",(int)regs->hw_lcdif_cur_buf);
-	printf("&regs->hw_lcdif_cur_buf = %x\n",(int)&regs->hw_lcdif_cur_buf);
-	printf("*regs->hw_lcdif_cur_buf = %x\n",*((int*)regs->hw_lcdif_cur_buf));
-	printf("cur_ panel->frameAdrs = %x\n",(int)panel->frameAdrs);
-	writel(panel->frameAdrs, &regs->hw_lcdif_next_buf);//+= 51*240
-	printf("next panel->frameAdrs = %x\n",(int)panel->frameAdrs);
+	writel(panel->frameAdrs  , &regs->hw_lcdif_cur_buf);
+
+	writel(panel->frameAdrs, &regs->hw_lcdif_next_buf);
 	/* Flush FIFO first */  
-	printf("&regs->hw_lcdif_ctrl1_set =%x\n", (int)&regs->hw_lcdif_ctrl1_set);
-	printf("LCDIF_CTRL1_FIFO_CLEAR before mdelay 5000 1111111111.............\n");
-	//mdelay(3000);
+
 	writel(LCDIF_CTRL1_FIFO_CLEAR, &regs->hw_lcdif_ctrl1_set);
-	printf("LCDIF_CTRL1_FIFO_CLEAR after mdelay 5000 11111111111111.............\n");
-	//mdelay(3000);
+
 #ifndef CONFIG_VIDEO_MXS_MODE_SYSTEM
 	/* Sync signals ON  start framebuffer translate */
-	printf("write red\n");
-	
-	
-
-		#if 0
-		if(bgc == 0)
-		{
-			bgc == 0x00ff; //green
-		}
-		else if(bgc == 0x00ff)
-		{
-			bgc = 0xff00;
-		}
-		else if(bgc == 0xff00)
-		{
-			bgc = 0xff0000;
-		}
-		else if(bgc == 0xff0000)
-		{
-			bgc = 0;
-		}
-		#endif
 		setbits_le32(&regs->hw_lcdif_vdctrl4, LCDIF_VDCTRL4_SYNC_SIGNALS_ON);
-		printf("Sync signals ON after\n");
-		//mdelay(3000);
-	
 
 #endif
 
-	/* FIFO cleared */
-	printf("LCDIF_CTRL1_FIFO_CLEAR before mdelay 5000 .............\n");
-//	mdelay(3000);
+
 	writel(LCDIF_CTRL1_FIFO_CLEAR, &regs->hw_lcdif_ctrl1_clr);
-	printf("LCDIF_CTRL1_FIFO_CLEAR after mdelay 5000 .............\n");
-//	mdelay(3000);
+
 	/* RUN! */
 	
-	printf("&regs->hw_lcdif_ctrl_set =%x\n", (int)&regs->hw_lcdif_ctrl_set);
-	printf("LCDIF_CTRL_RUN before mdelay 5000 .............\n");
-//	memsetl(video_fb_address,
-//		(VIDEO_VISIBLE_ROWS * VIDEO_LINE_LEN) / sizeof(int), bgx);
-
 	writel(LCDIF_CTRL_RUN, &regs->hw_lcdif_ctrl_set);
-	mdelay(200);
-	printf("panel->frameAdrs = %x\n",panel->frameAdrs);
-//	draw_log(panel->frameAdrs);
-//	mdelay(2000);
-	printf("LCDIF_CTRL_RUN after mdelay 5000\n");
-	printf("LCDIF_CTRL_RUN after mdelay 5000\n");
-	fram_size = (320 * 240 *5) / sizeof(int);
-	
-	printf("777777777&regs->hw_lcdif_ctrl144 =%x  sizeof int  = %d  fram_size = %d\n", (int)&regs->hw_lcdif_ctrl, sizeof(int),fram_size);
 
-	fb_offset = 0;
-#if 0
-	while(1)
-	{
-	
-		
-#if 0
-
-		printf("fb_offset fc = %d\n");
-		memsetl(panel->frameAdrs + (fb_offset*20 * 240), 240 * 20,0x0000FC);
-		printf("blue fc0000 \n");
-		mdelay(2000);
-		// memsetl(panel->frameAdrs + (0 * 240),240 * 20, 0x0000000);
-		// printf("clear\n");
-	    // mdelay(2000);
-		fb_offset++;
-		printf("fb_offset = %d\n",fb_offset);
-		memsetl(panel->frameAdrs + (fb_offset*20* 240), 240 * 20,0xFC0000);
-		printf("red fc0000 \n");
-		mdelay(2000);
-		fb_offset++;
-
-
-
-
-		fb_offset = fb_offset+20;
-		printf("fb_offset = %d\n");
-		memsetl(panel->frameAdrs + (20 * 240), 240 * 20,0xfc00);
-		printf("green fc00 \n");
-		mdelay(1000);
-
-		memsetl(panel->frameAdrs + (20 * 240),240 * 20, 0x0);
-		printf("clear 00 \n");
-		mdelay(1000);
-		
-		fb_offset = fb_offset+20;
-		printf("fb_offset = %d\n");
-		memsetl(panel->frameAdrs + (40 * 240), 240 * 20,0xfc00);
-		printf("green fc00 \n");
-		mdelay(1000);
-
-		memsetl(panel->frameAdrs + (40 * 240),240 * 20, 0x0);
-		printf("clear 00 \n");
-		mdelay(1000);
-		
-		fb_offset = fb_offset+20;
-		printf("fb_offset = %d\n");
-		memsetl(panel->frameAdrs + (60 * 240), 240 * 20,0xfc00);
-		printf("green fc00 \n");
-		mdelay(1000);
-
-		memsetl(panel->frameAdrs + (60 * 240),240 * 20, 0x0);
-		printf("clear 00 \n");
-		mdelay(1000);
-		
-		fb_offset = fb_offset+20;
-		printf("fb_offset = %d\n");
-		memsetl(panel->frameAdrs + (80 * 240), 240 * 20,0xfc00);
-		printf("green fc00 \n");
-		mdelay(1000);
-
-		memsetl(panel->frameAdrs + (80 * 240),240 * 20, 0x0);
-		printf("clear 00 \n");
-		mdelay(1000);
-#endif 
-		
-	}
-#endif
-	//writel(LCDIF_CTRL_RUN, &regs->hw_lcdif_ctrl);//hw_lcdif_ctrl
 }
 
 void lcdif_power_down()
@@ -355,7 +192,7 @@ void lcdif_power_down()
 	mxs_reset_block((struct mxs_register_32 *)&regs->hw_lcdif_ctrl);
 }
 
-extern	void st7789_init_board(void);
+
 void *video_hw_init(void)
 {
 	int bpp = -1;
@@ -365,11 +202,9 @@ void *video_hw_init(void)
 
 	puts("Video: ");
 
-	printf("**********video_hw_init****************\n");
 	if (!setup) {
 
 		/* Suck display configuration from "videomode" variable */
-		printf("steup........");
 		penv = getenv("videomode");
 		if (!penv) {
 			printf("MXSFB: 'videomode' variable not set!\n");
@@ -379,7 +214,6 @@ void *video_hw_init(void)
 		bpp = video_get_params(&mode, penv);
 		panel.isaBase  = MXS_LCDIF_BASE;
 	} else {
-		printf("fbmode\n");
 		mode.xres = fbmode.xres;
 		mode.yres = fbmode.yres;
 		mode.pixclock = fbmode.pixclock;
@@ -393,19 +227,6 @@ void *video_hw_init(void)
 		mode.vmode = fbmode.vmode;
 		bpp = depth;
 	}
-
-	printf("mode.xres =%d\n",mode.xres);
-	printf("mode.yres =%d\n",mode.yres);
-	printf("mode.pixclock =%d\n",mode.pixclock);
-	printf("mode.left_margin =%d\n",mode.left_margin);
-	printf("mode.right_margin =%d\n",mode.right_margin);
-	printf("mode.upper_margin =%d\n",mode.upper_margin);
-	printf("mode.lower_margin =%d\n",mode.lower_margin);
-	printf("mode.hsync_len =%d\n",mode.hsync_len);
-	printf("mode.vsync_len =%d\n",mode.vsync_len);
-	printf("mode.sync =%d\n",mode.sync);
-	printf("mode.vmode =%d\n",mode.vmode);
-	printf("bpp=%d\n",bpp);
 	
 	
 #ifdef CONFIG_MX6
@@ -449,7 +270,6 @@ void *video_hw_init(void)
 	/* Allocate framebuffer */
 	fb = memalign(ARCH_DMA_MINALIGN,
 		      roundup(panel.memSize, ARCH_DMA_MINALIGN));
-	printf("roundup(panel.memSize, ARCH_DMA_MINALIGN) = %d bytes \n",roundup(panel.memSize, ARCH_DMA_MINALIGN));
 	if (!fb) {
 		printf("MXSFB: Error allocating framebuffer!\n");
 		return NULL;
@@ -459,10 +279,7 @@ void *video_hw_init(void)
 	memset(fb, 0, panel.memSize);
 
 	panel.frameAdrs = (u32)fb;
-	printf("panel.frameAdrs = %x\n",panel.frameAdrs);
-	printf("%s\n", panel.modeIdent);
-	/**/
- //    st7789_init_board();
+
 	/* Start framebuffer */
 
 	mxs_lcd_init(&panel, &mode, bpp);
@@ -475,7 +292,6 @@ void *video_hw_init(void)
 	 * sets the RUN bit, then waits until it gets cleared and repeats this
 	 * infinitelly. This way, we get smooth continuous updates of the LCD.
 	 */
-	printf("CONFIG_VIDEO_MXS_MODE_SYSTEM\n");
 	struct mxs_lcdif_regs *regs = (struct mxs_lcdif_regs *)MXS_LCDIF_BASE;
 
 	memset(&desc, 0, sizeof(struct mxs_dma_desc));

@@ -92,7 +92,7 @@
 #include <version.h>
 #include <malloc.h>
 #include <linux/compiler.h>
-#if 1
+#if 0
 #define fb_debug(format,...) printf("File: "__FILE__", Line: %05d: "format"\n", __LINE__, ##__VA_ARGS__)  
 #else
 #define  fb_debug(format,...) {}
@@ -347,6 +347,10 @@ void console_cursor(int state);
  * info:	buffer for info string
  */
 extern void video_get_info_str(int line_number,	char *info);
+#endif
+
+#ifdef CONFIG_SOFT_SPI_ST7789
+extern void set_lcd_brt(char set); 
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -1693,7 +1697,7 @@ int video_display_bitmap(ulong bmp_image, int x, int y)
 			}
 			break;
 		case GDF_32BIT_X888RGB:
-			printf("GDF_32BIT_X888RGB\n");
+
 			while (ycount--) {
 				WATCHDOG_RESET();
 				xcount = width;
@@ -1708,7 +1712,6 @@ int video_display_bitmap(ulong bmp_image, int x, int y)
 			}	
 			break;
 		case GDF_24BIT_888RGB:
-		printf("GDF_24BIT_888RGB\n");
 			while (ycount--) {
 				WATCHDOG_RESET();
 				xcount = width;
@@ -1919,9 +1922,8 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 	logo_green = linux_logo_green;
 	logo_blue = linux_logo_blue;
 #endif
-	printf("plot_logo_or_black_VIDEO_DATA_FORMAT =%d\n",VIDEO_DATA_FORMAT);
 	fb_debug("plot_logo_or_black_VIDEO_DATA_FORMAT =%d\n",VIDEO_DATA_FORMAT);
-	printf("dest = %x\n", (unsigned int)dest);
+	fb_debug("dest = %x\n", (unsigned int)dest);
 
 
 #if 1
@@ -2009,10 +2011,6 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 
 #endif	
 
-
-	
-	printf("plot_logo_or_black draw_log....\n");
-
 #ifdef CONFIG_VIDEO_BMP_LOGO
 	free(logo_red);
 	free(logo_green);
@@ -2032,10 +2030,9 @@ static void *video_logo(void)
 	__maybe_unused char *s;
 	
 	splash_get_pos(&video_logo_xpos, &video_logo_ypos);
-	printf("video_logo\n");
 #ifdef CONFIG_SPLASH_SCREEN
 	s = getenv("splashimage");
-	printf("screnn s = %s\n",s);
+	fb_debug("screnn s = %s\n",s);
 	if (s != NULL) {
 		splash_screen_prepare();
 		addr = simple_strtoul(s, NULL, 16);
@@ -2052,8 +2049,8 @@ static void *video_logo(void)
 				VIDEO_COLS = %d\n \
 				video_logo_xpos =%d\n \
 				video_logo_ypos =%d\n", 
-				video_fb_address,VIDEO_COLS,
-		  video_logo_xpos, video_logo_ypos );
+				(unsigned int)video_fb_address,(unsigned int)VIDEO_COLS,
+		  (unsigned int)video_logo_xpos, (unsigned int)video_logo_ypos );
 	logo_plot(video_fb_address, VIDEO_COLS,
 		  video_logo_xpos, video_logo_ypos);
 
@@ -2178,26 +2175,11 @@ defined(CONFIG_SANDBOX) || defined(CONFIG_X86)
 	return 0;
 }
 extern  int SPI_9608_WR_CMD(int data);
-static void draw_log(unsigned int *fb)
-{
-	// unsigned int *p = fb; 
-	 // int c  = sizeof(stephen_log)/sizeof(int);
-	// unsigned int *v = (unsigned int *)stephen_log;
-	// printf("size of stephen_log =%d\n", c);
-	// while (c--)
-	// {
-		// *(p++) = *(v++);
-	// }
-		
-	// printf("stephen_log over \n");
-}
 void video_clear(void)
 {
-	int i =0;
 	if (!video_fb_address)
 		return;
 #if  0 //#ifdef VIDEO_HW_RECTFILL
-	printf("VIDEO_HW_RECTFILL\n");
 	video_hw_rectfill(VIDEO_PIXEL_SIZE,	/* bytes per pixel */
 			  0,			/* dest pos x */
 			  0,			/* dest pos y */
@@ -2206,9 +2188,6 @@ void video_clear(void)
 			  bgx			/* fill color */
 	);
 #else
-
-	printf("video_fb_address34433= 0x%x, bgx = 0x%x\n",(unsigned int)video_fb_address,bgx);
- 
 	memsetl(video_fb_address,
 		320*240*4 / sizeof(int), 0);
 #endif
@@ -2228,7 +2207,6 @@ static int video_init(void)
 	cfb_do_flush_cache = cfb_fb_is_in_dram() && dcache_status();
 
 	/* Init drawing pats */
-	printf("VIDEO_DATA_FORMAT =%x\n",VIDEO_DATA_FORMAT);
 	switch (VIDEO_DATA_FORMAT) {
 	case GDF__8BIT_INDEX:
 		video_set_lut(0x01, CONSOLE_FG_COL, CONSOLE_FG_COL,
@@ -2298,14 +2276,12 @@ static int video_init(void)
 		break;
 	}
 	eorx = fgx ^ bgx;
-	printf("video_fb_address =%x\n", (int)(*((int*)video_fb_address)));
 	video_clear();
 
 	
 
 #ifdef CONFIG_VIDEO_LOGO
 	/* Plot the logo and get start point of console */
-	printf("Video: Drawing the logo ...\n");
 	video_console_address = video_logo();
 #else
 	video_console_address = video_fb_address;
@@ -2319,6 +2295,8 @@ static int video_init(void)
 	fb_debug("VIDEO_FB_ADRS = %x \n ,VIDEO_SIZE =%d\n ",VIDEO_FB_ADRS,VIDEO_SIZE);
 	if (cfb_do_flush_cache)
 		flush_cache(VIDEO_FB_ADRS, VIDEO_SIZE);
+	mdelay(20);
+	set_lcd_brt(1);
 	mdelay(3000);
 	return 0;
 }
@@ -2337,7 +2315,6 @@ int drv_video_init(void)
 {
 	int skip_dev_init;
 	struct stdio_dev console_dev;
-	printf("drv_video_init\n");
 	/* Check if video initialization should be skipped */
 	if (board_video_skip())
 		return 0;

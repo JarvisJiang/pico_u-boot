@@ -413,6 +413,7 @@ struct lcd_panel_info_t {
 };
 
 void st7789_init_board(void);
+void set_lcd_brt(char set);
 void do_enable_parallel_lcd(struct lcd_panel_info_t const *dev)
 {
 	
@@ -420,13 +421,7 @@ void do_enable_parallel_lcd(struct lcd_panel_info_t const *dev)
 
 	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
 
-	/* Reset the LCD */
-	gpio_direction_output(IMX_GPIO_NR(4, 21),  0);
-	udelay(500);
-	gpio_direction_output(IMX_GPIO_NR(4, 21),  1);
-	udelay(500);
-	/* Set Brightness to high */
-	gpio_direction_output(IMX_GPIO_NR(4, 10) , 1);
+	set_lcd_brt(0);
 }
 
 
@@ -443,7 +438,7 @@ static struct lcd_panel_info_t const displays[] = {{
 		.right_margin   = 38,  // hfp 
 		.upper_margin   = 4, //vbp 
 		.lower_margin   = 50, //vfp 增加50 
-		.hsync_len      = 10, //hpw
+		.hsync_len      = 10, //hs
 		.vsync_len      = 1,  //vs
 		.sync           = 0,
 		.vmode          = FB_VMODE_NONINTERLACED
@@ -453,7 +448,6 @@ int board_video_skip(void)
 {
 	int i;
 	int ret;
-	printf("board_video_skip\n");
 	char const *panel = getenv("panel");
 	if (!panel) {
 		panel = displays[0].mode.name;
@@ -882,37 +876,12 @@ void st7789_init_board(void)
 {
 	imx_iomux_v3_setup_multiple_pads(sf_spi_st7789_init, ARRAY_SIZE(sf_spi_st7789_init));
 
-	#if 0
 	//brightless
-	set_lcd_brt(1);
+	
 	/* Reset the LCD */
-	gpio_direction_output(IMX_GPIO_NR(4, 21),  0);
-	mdelay(50);
-	gpio_direction_output(IMX_GPIO_NR(4, 21),  1);
-	#endif
-	init_st7789_on_spi();
-#if 0
-	while(1)
-	{
-	printf("init st7789 \r\n");
-//	mdelay(200);
-	set_lcd_brt();
-	  init_st7789_on_spi();
-/*
-	set_soft_spi_sda(1);
-	set_soft_spi_clk(1);
-	set_soft_spi_ss(1);
-	printf("miso ff input jrjrjrjjrjrjrj value %d\n", get_sda_io());
-	 mdelay(100);
-	set_soft_spi_sda(0);
-        set_soft_spi_clk(0);
-	set_soft_spi_ss(0);
-*/
-//	printf("miso input value %d\n", get_sda_io());
-	mdelay(100);
 
-	}
-#endif
+	init_st7789_on_spi();
+
 }
 
 

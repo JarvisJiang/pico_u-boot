@@ -193,7 +193,8 @@
 #include <stdio_dev.h>
 #include <video_font.h>
 //#include <stephen_log.h>
-#include <test2302_log.h>
+//#include <test2302_log.h>
+#include <sandisk_log32.h>
 #if defined(CONFIG_CMD_DATE)
 #include <rtc.h>
 #endif
@@ -1881,7 +1882,7 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 	unsigned char *source;
 	unsigned char *dest;
 	
-	unsigned int *pfirst_picture = (unsigned int *)test2302_log;
+	unsigned int *pfirst_picture = (unsigned int *)sandisk_log32;
 #ifdef CONFIG_SPLASH_SCREEN_ALIGN
 	if (x == BMP_ALIGN_CENTER)
 		x = max(0, (int)(VIDEO_VISIBLE_COLS - VIDEO_LOGO_WIDTH) / 2);
@@ -2179,7 +2180,7 @@ void video_clear(void)
 {
 	if (!video_fb_address)
 		return;
-#if  0 //#ifdef VIDEO_HW_RECTFILL
+#ifdef VIDEO_HW_RECTFILL
 	video_hw_rectfill(VIDEO_PIXEL_SIZE,	/* bytes per pixel */
 			  0,			/* dest pos x */
 			  0,			/* dest pos y */
@@ -2189,7 +2190,7 @@ void video_clear(void)
 	);
 #else
 	memsetl(video_fb_address,
-		320*240*4 / sizeof(int), 0);
+		(VIDEO_VISIBLE_ROWS * VIDEO_LINE_LEN) / sizeof(int), bgx);
 #endif
 }
 

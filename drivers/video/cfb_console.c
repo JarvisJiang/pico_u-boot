@@ -97,8 +97,11 @@
 #else
 #define  fb_debug(format,...) {}
 #endif
-
-
+/*use windows tool to convert the data*/
+#define USE_RGB666_SPLASH_LOG   0
+#if USE_RGB666_SPLASH_LOG 
+#include<sandisk_log32.h>
+#endif
 /*
  * Console device defines with SMI graphic
  * Any other graphic must change this section
@@ -194,7 +197,6 @@
 #include <video_font.h>
 //#include <stephen_log.h>
 //#include <test2302_log.h>
-#include <sandisk_log32.h>
 #if defined(CONFIG_CMD_DATE)
 #include <rtc.h>
 #endif
@@ -1881,8 +1883,9 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 	unsigned char r, g, b, *logo_red, *logo_blue, *logo_green;
 	unsigned char *source;
 	unsigned char *dest;
-	
+	#if USE_RGB666_SPLASH_LOG 
 	unsigned int *pfirst_picture = (unsigned int *)sandisk_log32;
+	#endif
 #ifdef CONFIG_SPLASH_SCREEN_ALIGN
 	if (x == BMP_ALIGN_CENTER)
 		x = max(0, (int)(VIDEO_VISIBLE_COLS - VIDEO_LOGO_WIDTH) / 2);
@@ -1981,15 +1984,16 @@ static void plot_logo_or_black(void *screen, int width, int x, int y, int black)
 							 (b >> 3)));
 				break;
 			case GDF_32BIT_X888RGB:
-			  #if 0
-				*(unsigned long *) dest =
-				
+			  #if USE_RGB666_SPLASH_LOG 
+			  	/*need call include   <sandisk_log32.h>*/ 
+				*(unsigned long *) dest = *(pfirst_picture++);
+
+			  #else
+				*(unsigned long *) dest =	
 					SWAP32((unsigned long) (
 							(r << 16) |
 							(g <<  8) |
 							 b));
-			  #else
-				*(unsigned long *) dest = *(pfirst_picture++);
 			  #endif	
 			 break;
 			case GDF_24BIT_888RGB:

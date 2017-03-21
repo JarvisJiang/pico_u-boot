@@ -2298,7 +2298,8 @@ static int video_init(void)
 		flush_cache(VIDEO_FB_ADRS, VIDEO_SIZE);
 	mdelay(20);
 	set_lcd_brt(1);
-	mdelay(3000);
+	fb_debug("DISPLAY NORMAL IN HERE\n");
+//	mdelay(3000);
 	return 0;
 }
 

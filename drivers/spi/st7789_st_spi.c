@@ -33,8 +33,7 @@ extern void set_soft_spi_clk(char set);
 extern void set_soft_spi_sda(char set);
 extern int  get_sda_io(void);
 extern void set_reset_st7789(char set);
-static void origial_init(void);
-
+static void origial_init(void);			  								
 void spi_cs_activate(struct spi_slave *slave)
 {
 	set_soft_spi_ss(0);
@@ -44,6 +43,7 @@ void spi_cs_deactivate(struct spi_slave *slave)
 {
        set_soft_spi_ss(1);
 }
+
 /*-----------------------------------------------------------------------
  * SPI transfer
  *
@@ -161,9 +161,9 @@ void init_st7789_on_spi(void)
 	s_buf[9] = 0xff;
 
 	SPI_RESET_PIN(0);
-	mdelay(10);
+	udelay(500);
 	SPI_RESET_PIN(1);
-	mdelay(10);
+	udelay(500);
 	origial_init();
 }
 
@@ -257,7 +257,7 @@ static void origial_init(void)
 	SPI_9608_WR_PAR(0x19);
 
 	SPI_9608_WR_CMD(0x29);
-	mdelay(20);	
+	//mdelay(20);	
 	SPI_9608_WR_CMD(0x2c);
 }
 #ifdef TEST_ST7789_SPI_DISPLAY_STATE
